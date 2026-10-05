@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Task Tray
+Comment=Lightweight task tracker in the GNOME top bar
+Exec=python3 /home/YOUR_USERNAME/task-tray/task_tray.py
+Icon=checkbox-symbolic
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true
