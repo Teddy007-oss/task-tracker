@@ -1,11 +1,14 @@
 # Task Tray
 
-A lightweight task tracker that lives permanently in the GNOME top bar.
+A lightweight, plain Kanban board for Ubuntu GNOME that lives in your top bar.
 
-## 1. Install dependencies (Ubuntu)
+Features three equal columns (**Tasks**, **In Progress**, **Finished**), native GTK drag-and-drop between columns, quick task entry, single-instance window management, celebratory completion notifications, custom application icon, and atomic JSON persistence.
 
-GNOME 40+ / Ubuntu 22.04+ (uses Ayatana AppIndicator — this is the modern,
-actively-maintained fork; the script auto-detects it):
+---
+
+## 1. Required APT Packages (Ubuntu / Debian)
+
+Install the required GTK 3, AppIndicator, notification, and Python GI packages:
 
 ```bash
 sudo apt update
@@ -16,92 +19,107 @@ sudo apt install -y \
   python3-gi
 ```
 
-If `gir1.2-ayatanaappindicator3-0.1` isn't found on your version of Ubuntu
-(older releases), use the legacy package instead — the script falls back to
-it automatically:
+> **Note on older Ubuntu releases:** If `gir1.2-ayatanaappindicator3-0.1` is unavailable on your release, install the legacy package instead:
+> ```bash
+> sudo apt install -y gir1.2-appindicator3-0.3
+> ```
+> The script automatically falls back to whichever library is installed.
 
-```bash
-sudo apt install -y gir1.2-appindicator3-0.3
-```
+### GNOME Shell Extension (Top Bar Tray Support)
 
-### GNOME Shell extension (important!)
-
-Vanilla GNOME Shell hides tray icons (AppIndicators) unless you have the
-**AppIndicator and KStatusNotifierItem Support** extension installed:
+Standard GNOME Shell requires the AppIndicator extension to display tray icons in the top bar:
 
 ```bash
 sudo apt install -y gnome-shell-extension-appindicator
 ```
 
-Then log out and back in (or restart GNOME Shell with `Alt+F2` → `r` on
-Xorg), and enable the extension via the **Extensions** app if it isn't
-already on.
+If not already active, enable the extension using the **Extensions** app (or log out and back in).
 
-## 2. Get the files
+---
 
-Put `task_tray.py` somewhere permanent, e.g.:
+## 2. Installation & Running
+
+Put `task_tray.py` and `icon.png` in your desired location (e.g., `~/task-tray/`):
 
 ```bash
 mkdir -p ~/task-tray
-cp task_tray.py ~/task-tray/
+cp task_tray.py icon.png ~/task-tray/
 chmod +x ~/task-tray/task_tray.py
 ```
 
-## 3. Run it
+Run the application:
 
 ```bash
 python3 ~/task-tray/task_tray.py
 ```
 
-You should see an icon appear in the top bar. Click it to see the menu.
+- When launched, the board window opens and the custom icon appears in your top bar tray and window titlebar.
+- If launched again while already running, it brings the existing window to the front (single instance).
 
-Tasks are stored at:
+---
 
-```
-~/.local/share/task-tray/tasks.json
-```
+## 3. Features & Usage
 
-## 4. Autostart on login
+- **Top Bar Tray Icon**:
+  - Displays your custom application icon in the top bar tray.
+  - Clicking the icon shows a minimal menu: **Open board** and **Quit**.
+  - **Open board** presents the Kanban board window.
+  - **Quit** cleanly closes the application.
+- **Three Equal Columns**:
+  - **Tasks**, **In Progress**, and **Finished**.
+  - Each column header shows its title and real-time task count (e.g. `Tasks (3)`).
+  - Empty columns display a clean placeholder text.
+- **Strict Forward-Only Progression**:
+  - Tasks cannot be cancelled once inputted.
+  - Tasks can only advance forward to the next pane (**Tasks** → **In Progress** → **Finished**).
+  - Backward moves and skipping panes are prohibited.
+- **Add Tasks**:
+  - An entry and **Add** button sit at the top of the **Tasks** column.
+  - Type your task and press **Enter** (or click **Add**) to append it to **Tasks**.
+- **Clear Finished**:
+  - The **Finished** column includes a **Clear finished** button to remove all completed tasks once they reach the end.
+- **Celebratory Desktop Notifications**:
+  - Moving a task to **Finished** triggers a celebratory desktop notification with a fun message (e.g., `"🎉 Boom! Task crushed!"`).
+- **Window Management**:
+  - Closing the window (via the `×` titlebar button) hides it to the tray without quitting.
+  - The app remains running in the background until **Quit** is selected from the tray icon menu.
+- **Single Instance**:
+  - Launching `python3 task_tray.py` again focuses and unhides the existing window rather than spawning duplicate processes.
 
-Copy the provided `.desktop` file into your autostart folder, editing the
-`Exec` line to match where you put the script:
+---
+
+## 4. Data Persistence & Migration
+
+- Tasks are stored in:
+  ```
+  ~/.local/share/task-tray/tasks.json
+  ```
+- Each task record format:
+  ```json
+  {
+    "id": "e81d7637-ef86-455c-a5b6-7f41cf134bb8",
+    "title": "Calibrate sensors",
+    "status": "todo"
+  }
+  ```
+  Allowed statuses: `todo`, `in_progress`, `done`.
+- **Atomic saves**: Every change writes to a temporary file before replacing `tasks.json`, guarding against data corruption.
+- **Auto-migration**: Legacy task files with `{id, title}` entries are automatically migrated to `status: "todo"` on startup.
+
+---
+
+## 5. Autostart on Login
+
+To launch Task Tray automatically when logging into GNOME:
 
 ```bash
 mkdir -p ~/.config/autostart
 cp task-tray.desktop ~/.config/autostart/
 ```
 
-Then edit `~/.config/autostart/task-tray.desktop` and replace
-`/home/YOUR_USERNAME/task-tray/task_tray.py` with the actual path, e.g.:
+Update the paths in `~/.config/autostart/task-tray.desktop` to match your script location:
 
 ```bash
 sed -i "s|/home/YOUR_USERNAME/task-tray/task_tray.py|$HOME/task-tray/task_tray.py|" ~/.config/autostart/task-tray.desktop
+sed -i "s|/home/YOUR_USERNAME/task-tray/icon.png|$HOME/task-tray/icon.png|" ~/.config/autostart/task-tray.desktop
 ```
-
-Log out and back in — Task Tray will now start automatically and sit in the
-top bar every session.
-
-## 5. Usage
-
-- **Click the tray icon** — opens the menu with all current tasks.
-- **Click a task** — marks it done: it's instantly removed and you get a
-  fun congratulatory notification (e.g. "🔥 You absolute legend!").
-- **➕ Add task…** — opens a small dialog; type your task and press **Enter**
-  (or click OK) to add it.
-- **🗑 Clear all** — asks for confirmation, then wipes every task.
-- **Quit** — exits the app (it won't reappear until you run it again, unless
-  autostart is set up).
-- When there are no tasks left, the menu shows **"✨ All done! Add a new
-  task"**.
-
-## Notes
-
-- Tasks persist between sessions in
-  `~/.local/share/task-tray/tasks.json` (plain JSON, easy to back up or
-  inspect: `cat ~/.local/share/task-tray/tasks.json`).
-- The tray icon auto-selects a symbolic icon that actually exists in your
-  current icon theme (tries `checkbox-symbolic` first, with sensible
-  fallbacks), so it won't render as a broken/blank icon on themes that lack
-  that specific name.
-- Writes to disk are atomic (write-then-rename), so a crash mid-save won't
-  corrupt your task list.
